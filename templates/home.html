@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot</title>
+    <style>
+        :root {
+            --ink: #132238;
+            --ink-soft: rgba(19, 34, 56, 0.72);
+            --ocean: #0b5ea8;
+            --ocean-deep: #0d3b66;
+            --cream: #f7f1e8;
+            --paper: rgba(255, 252, 247, 0.94);
+            --paper-strong: #fffdf9;
+            --line: rgba(19, 34, 56, 0.12);
+            --alert: #9b2226;
+            --alert-bg: rgba(255, 245, 245, 0.94);
+            --shadow: 0 28px 70px rgba(19, 34, 56, 0.18);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            color: var(--ink);
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            position: relative;
+            overflow-x: hidden;
+            background:
+                radial-gradient(circle at top, rgba(255, 255, 255, 0.45), transparent 32%),
+                linear-gradient(135deg, #fbf5ea 0%, #e1f1ff 48%, #d9efe6 100%);
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image: url('{{ url_for("static", filename="bot.webp") }}');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            filter: blur(10px);
+            opacity: 0.14;
+            z-index: -2;
+            transform: scale(1.04);
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at top left, rgba(245, 189, 63, 0.22), transparent 24%),
+                radial-gradient(circle at bottom right, rgba(11, 94, 168, 0.18), transparent 30%);
+            z-index: -1;
+        }
+
+        .page-shell {
+            width: min(100%, 980px);
+        }
+
+        .chat-shell {
+            border: 1px solid rgba(255, 255, 255, 0.75);
+            border-radius: 34px;
+            overflow: hidden;
+            background: var(--paper);
+            box-shadow: var(--shadow);
+        }
+
+        .hero {
+            display: grid;
+            gap: 20px;
+            padding: 34px 36px 28px;
+            background:
+                linear-gradient(135deg, rgba(13, 59, 102, 0.97), rgba(11, 94, 168, 0.92)),
+                radial-gradient(circle at right, rgba(255, 211, 105, 0.26), transparent 34%);
+            color: #fff;
+        }
+
+        .eyebrow {
+            margin: 0 0 12px;
+            font-size: 0.78rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            opacity: 0.78;
+        }
+
+        .hero h1 {
+            margin: 0 0 10px;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(2.3rem, 4vw, 3.4rem);
+            line-height: 0.98;
+        }
+
+        .hero p {
+            margin: 0;
+            max-width: 44rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.02rem;
+            line-height: 1.6;
+        }
+
+        .hero-strip {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .hero-pill {
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            font-size: 0.92rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .chat-body {
+            padding: 30px 36px 36px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08));
+        }
+
+        .composer {
+            padding: 24px;
+            border-radius: 28px;
+            background: var(--paper-strong);
+            border: 1px solid rgba(19, 34, 56, 0.08);
+            box-shadow: 0 12px 32px rgba(19, 34, 56, 0.08);
+        }
+
+        .composer-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .composer-title {
+            margin: 0;
+            font-size: 1.35rem;
+            line-height: 1.2;
+        }
+
+        .composer-note {
+            margin: 0;
+            color: var(--ink-soft);
+            font-size: 0.95rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            color: rgba(19, 34, 56, 0.78);
+        }
+
+        .form-control {
+            display: block;
+            width: 100%;
+            border-radius: 24px;
+            border: 1px solid rgba(19, 34, 56, 0.16);
+            background: linear-gradient(180deg, #fffdf9 0%, #fff8ef 100%);
+            box-shadow: inset 0 2px 8px rgba(19, 34, 56, 0.04);
+            padding: 20px 22px;
+            min-height: 190px;
+            resize: vertical;
+            color: var(--ink);
+            font: inherit;
+            font-size: 1rem;
+            line-height: 1.6;
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: rgba(11, 94, 168, 0.6);
+            box-shadow:
+                inset 0 2px 8px rgba(19, 34, 56, 0.04),
+                0 0 0 4px rgba(11, 94, 168, 0.12);
+        }
+
+        .field-help {
+            margin-top: 0.75rem;
+            color: var(--ink-soft);
+            font-size: 0.98rem;
+        }
+
+        .action-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+            margin-top: 22px;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: none;
+            border-radius: 999px;
+            padding: 14px 30px;
+            font-weight: 700;
+            color: #fff;
+            background: linear-gradient(135deg, var(--ocean), var(--ocean-deep));
+            box-shadow: 0 18px 30px rgba(11, 94, 168, 0.22);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .btn-primary:hover,
+        .btn-primary:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 20px 34px rgba(11, 94, 168, 0.26);
+        }
+
+        .btn-primary:disabled {
+            transform: none;
+            box-shadow: none;
+            opacity: 0.8;
+        }
+
+        .hint-stack {
+            display: grid;
+            gap: 6px;
+            min-width: min(100%, 280px);
+        }
+
+        .hint-kicker {
+            margin: 0;
+            font-size: 0.76rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: rgba(19, 34, 56, 0.55);
+        }
+
+        .hint-copy {
+            margin: 0;
+            color: var(--ink-soft);
+            font-size: 0.96rem;
+            line-height: 1.5;
+        }
+
+        .alert-banner {
+            margin-top: 18px;
+            padding: 14px 18px;
+            border-radius: 18px;
+            border: 1px solid rgba(155, 34, 38, 0.12);
+            background: var(--alert-bg);
+            color: var(--alert);
+        }
+
+        .response-card {
+            margin-top: 28px;
+            padding: 24px 26px;
+            border-radius: 24px;
+            border: 1px solid rgba(19, 34, 56, 0.09);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 248, 252, 0.98));
+            box-shadow: 0 14px 28px rgba(19, 34, 56, 0.07);
+        }
+
+        .response-kicker {
+            margin: 0 0 8px;
+            font-size: 0.78rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(19, 34, 56, 0.56);
+        }
+
+        .response-card h2 {
+            margin: 0 0 16px;
+            font-size: 1.3rem;
+        }
+
+        .response-copy {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            line-height: 1.7;
+            color: var(--ink);
+        }
+
+        .button-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        .is-hidden {
+            display: none;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 16px;
+            }
+
+            .hero,
+            .chat-body {
+                padding-left: 22px;
+                padding-right: 22px;
+            }
+
+            .composer {
+                padding: 18px;
+            }
+
+            .btn-primary {
+                width: 100%;
+            }
+
+            .hint-stack {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="page-shell">
+        <section class="chat-shell">
+            <div class="hero">
+                <div>
+                    <p class="eyebrow">Conversational Sandbox</p>
+                    <h1>AI Chatbot</h1>
+                    <p>Ask anything. Powered by Cohere.</p>
+                </div>
+                <div class="hero-strip">
+                    <span class="hero-pill">✦ Cohere Command</span>
+                    <span class="hero-pill">✦ Instant Responses</span>
+                    <span class="hero-pill">✦ Free-form Prompts</span>
+                </div>
+            </div>
+
+            <div class="chat-body">
+                <div class="composer">
+                    <div class="composer-head">
+                        <h2 class="composer-title">Your Prompt</h2>
+                        <p class="composer-note">Keep prompts clear and focused for best results.</p>
+                    </div>
+
+                    <form method="POST" id="prompt-form">
+                        {{ form.hidden_tag() }}
+
+                        <label for="text" class="form-label">Prompt</label>
+                        {{ form.text(class="form-control", id="text", rows="6", placeholder="Try: Draft a short poem about the ocean...") }}
+                        <div class="field-help">Enter a prompt and generate a response.</div>
+
+                        {% if form.text.errors %}
+                        <div class="alert-banner" role="alert">
+                            {% for field_error in form.text.errors %}
+                            <div>{{ field_error }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        {% if error %}
+                        <div class="alert-banner" role="alert">{{ error }}</div>
+                        {% endif %}
+
+                        <div class="action-row">
+                            <button type="submit" class="btn-primary" id="submit-button">
+                                <span id="button-label">Generate Response</span>
+                                <span class="button-spinner is-hidden" id="submit-spinner" aria-hidden="true"></span>
+                            </button>
+                            <div class="hint-stack">
+                                <p class="hint-kicker">Tip</p>
+                                <p class="hint-copy">Ask for one task at a time if you want the quickest result.</p>
+                            </div>
+                        </div>
+                    </form>
+
+                    {% if output %}
+                    <section class="response-card" aria-live="polite">
+                        <p class="response-kicker">Response</p>
+                        <h2>Assistant response</h2>
+                        <pre class="response-copy">{{ output }}</pre>
+                    </section>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const promptForm = document.getElementById("prompt-form");
+        const submitButton = document.getElementById("submit-button");
+        const submitSpinner = document.getElementById("submit-spinner");
+        const buttonLabel = document.getElementById("button-label");
+
+        if (promptForm && submitButton && submitSpinner && buttonLabel) {
+            promptForm.addEventListener("submit", () => {
+                submitButton.disabled = true;
+                submitSpinner.classList.remove("is-hidden");
+                buttonLabel.textContent = "Thinking…";
+            });
+        }
+    </script>
+</body>
+
+</html>
