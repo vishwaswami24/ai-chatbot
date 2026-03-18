@@ -1,0 +1,6 @@
+cohere
+flask
+flask-wtf
+httpx
+wtforms
+
